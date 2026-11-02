@@ -1,0 +1,79 @@
+# Providers installed into the CONTROL-PLANE cluster.
+# The Azure family is co-released at one tag; pin every package to the same version.
+# provider-family-azure ships the ClusterProviderConfig CRD and ResourceGroup.
+#
+# Every provider gets a runtimeConfigRef: it shortens the drift poll interval to
+# 30s (default 10m) and turns on the change logs sidecar. See runtimeconfigs.yaml.
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-family-azure
+spec:
+  # ResourceGroup (azure.m.upbound.io) is used by demo 1
+  package: xpkg.upbound.io/upbound/provider-family-azure:v2.7.0
+  runtimeConfigRef:
+    apiVersion: pkg.crossplane.io/v1beta1
+    kind: DeploymentRuntimeConfig
+    name: provider-demo
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-azure-keyvault
+spec:
+  # ships Vault (keyvault.azure.m.upbound.io), used by demo 1
+  package: xpkg.upbound.io/upbound/provider-azure-keyvault:v2.7.0
+  runtimeConfigRef:
+    apiVersion: pkg.crossplane.io/v1beta1
+    kind: DeploymentRuntimeConfig
+    name: provider-demo
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-azure-managedidentity
+spec:
+  # ships UserAssignedIdentity and FederatedIdentityCredential
+  package: xpkg.upbound.io/upbound/provider-azure-managedidentity:v2.7.0
+  runtimeConfigRef:
+    apiVersion: pkg.crossplane.io/v1beta1
+    kind: DeploymentRuntimeConfig
+    name: provider-demo
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-azure-authorization
+spec:
+  # ships RoleAssignment
+  package: xpkg.upbound.io/upbound/provider-azure-authorization:v2.7.0
+  runtimeConfigRef:
+    apiVersion: pkg.crossplane.io/v1beta1
+    kind: DeploymentRuntimeConfig
+    name: provider-demo
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-github
+spec:
+  # ships Repository, Environment, BranchProtection and ActionsVariable
+  package: xpkg.upbound.io/crossplane-contrib/provider-upjet-github:v0.20.0
+  runtimeConfigRef:
+    apiVersion: pkg.crossplane.io/v1beta1
+    kind: DeploymentRuntimeConfig
+    name: provider-demo
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-kubernetes
+spec:
+  # ships the namespaced Object (kubernetes.m.crossplane.io) used to provision
+  # the workload cluster remotely
+  package: xpkg.upbound.io/crossplane-contrib/provider-kubernetes:v1.3.1
+  runtimeConfigRef:
+    apiVersion: pkg.crossplane.io/v1beta1
+    kind: DeploymentRuntimeConfig
+    name: kubernetes-demo

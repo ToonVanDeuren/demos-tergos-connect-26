@@ -1,0 +1,17 @@
+apiVersion: azure.m.upbound.io/v1beta1
+kind: ResourceGroup
+metadata:
+  name: rg-crossplane-demo-1-weu
+  namespace: demo-1
+  labels:
+    demo: keyvault
+spec:
+  forProvider:
+    location: West Europe
+    tags:
+      technicalOwner: Toon
+      purpose: demo
+      demo: keyvault
+
+
+

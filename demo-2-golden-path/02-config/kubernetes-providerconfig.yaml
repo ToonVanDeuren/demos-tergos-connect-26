@@ -1,0 +1,22 @@
+# Points provider-kubernetes at the SEPARATE workload cluster, AKS Automatic.
+# The secret `cluster-config` (key `kubeconfig`) holds its kubeconfig, created by
+# setup.sh. AKS Automatic authorizes with Azure RBAC, so the provider signs in as
+# the demo service principal from `azure-creds` instead of an admin account.
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: ClusterProviderConfig
+metadata:
+  name: workload-cluster
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: cluster-config
+      key: kubeconfig
+  identity:
+    type: AzureServicePrincipalCredentials
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: azure-creds
+      key: creds

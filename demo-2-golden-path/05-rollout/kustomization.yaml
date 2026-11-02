@@ -1,0 +1,10 @@
+# Beat 4: the rules change. This is the App composition plus one step, nothing else.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../03-platform/app
+patches:
+  - path: branch-protection.yaml
+    target:
+      kind: Composition
+      name: app

@@ -1,0 +1,39 @@
+# App: everything a team needs before its first release. One request, from a repo
+# to a route.
+#
+# This schema is the first check: `language` has a fixed list of values, so a
+# request for anything else is rejected before anything is called. Visibility,
+# identity, Pod Security, tags: none of it is in here, so it cannot be requested
+# differently.
+#
+# Cluster-scoped on purpose: every App gets a namespace of its own in the workload
+# cluster, and it is the platform that decides what is in it.
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: apps.platform.toon.consulting
+spec:
+  scope: Cluster
+  group: platform.toon.consulting
+  names:
+    kind: App
+    plural: apps
+  defaultCompositionRef:
+    name: app
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                language:
+                  type: string
+                  description: Selects the repository template.
+                  enum: [go]
+              required:
+                - language

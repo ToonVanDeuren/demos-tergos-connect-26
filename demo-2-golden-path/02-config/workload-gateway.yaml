@@ -1,0 +1,31 @@
+# The platform-owned Gateway in the WORKLOAD cluster. Applied directly by
+# setup.sh, not through Crossplane: it is the static, shared layer, like the
+# cluster itself. Every App attaches an HTTPRoute to it.
+#
+# `approuting-istio` is the AKS App Routing Gateway API implementation. HTTP only
+# for the demo: the hostnames are <app>.<gateway ip>.nip.io, so there is no DNS
+# zone to own and no self-signed certificate warning on stage.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-gateway
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: platform
+  namespace: platform-gateway
+spec:
+  gatewayClassName: approuting-istio
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchExpressions:
+              - key: platform.example.com/app   # only namespaces the App composition created
+                operator: Exists

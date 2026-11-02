@@ -1,0 +1,26 @@
+# Composition pipeline functions.
+#   environment-configs  resolves EnvironmentConfigs and merges them into the
+#                        pipeline context
+#   go-templating        renders every object
+#   auto-ready           holds the composite Ready=False until everything it
+#                        composed is ready
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-environment-configs
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-environment-configs:v0.7.5
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-go-templating
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-go-templating:v0.12.4
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-auto-ready
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-auto-ready:v0.6.5

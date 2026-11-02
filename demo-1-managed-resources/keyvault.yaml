@@ -1,0 +1,19 @@
+apiVersion: keyvault.azure.m.upbound.io/v1beta1
+kind: Vault
+metadata:
+  labels:
+    demo: keyvault
+  name: kv-crossplane-demo-1-weu
+  namespace: demo-1
+spec:
+  forProvider:
+    location: West Europe
+    resourceGroupNameSelector:
+      matchLabels:
+        demo: keyvault
+    skuName: premium
+    softDeleteRetentionDays: 7
+
+
+
+    

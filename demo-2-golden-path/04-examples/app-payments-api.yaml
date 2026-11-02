@@ -1,0 +1,7 @@
+# Beat 2: requested live. Everything else in the demo follows from these lines.
+apiVersion: platform.toon.consulting/v1alpha1
+kind: App
+metadata:
+  name: payments-api
+spec:
+  language: go

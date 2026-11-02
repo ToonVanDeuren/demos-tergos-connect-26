@@ -1,0 +1,69 @@
+# Runtime settings for the provider pods. Two things happen here:
+#
+# 1. --poll=30s      drift is checked every 30 seconds instead of every 10 minutes,
+#                    so a by-hand change heals while the room is watching.
+#                    (Production: leave the default, or tune per provider.)
+# 2. change logs     alpha feature (Crossplane >= 1.17). The provider streams every
+#                    CREATE / UPDATE / DELETE it performs, with a snapshot of the
+#                    resource as observed before the operation, to a sidecar that
+#                    prints them as JSON on its stdout. That is the audit receipt.
+#                    Flag on the provider + sidecar container + shared emptyDir.
+---
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: provider-demo
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+              args:
+                - --poll=30s
+                - --enable-changelogs
+              volumeMounts:
+                - name: changelogs-vol
+                  mountPath: /var/run/changelogs
+            - name: changelogs-sidecar
+              image: xpkg.crossplane.io/crossplane/changelogs-sidecar:v0.0.1
+              volumeMounts:
+                - name: changelogs-vol
+                  mountPath: /var/run/changelogs
+          volumes:
+            - name: changelogs-vol
+              emptyDir: {}
+---
+# provider-kubernetes additionally gets --enable-watches: Objects with
+# `spec.watch: true` are re-reconciled the moment the remote resource changes,
+# so deleting a Service in the workload cluster heals immediately rather than on
+# the next poll.
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: kubernetes-demo
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+              args:
+                - --poll=30s
+                - --enable-watches
+                - --enable-changelogs
+              volumeMounts:
+                - name: changelogs-vol
+                  mountPath: /var/run/changelogs
+            - name: changelogs-sidecar
+              image: xpkg.crossplane.io/crossplane/changelogs-sidecar:v0.0.1
+              volumeMounts:
+                - name: changelogs-vol
+                  mountPath: /var/run/changelogs
+          volumes:
+            - name: changelogs-vol
+              emptyDir: {}

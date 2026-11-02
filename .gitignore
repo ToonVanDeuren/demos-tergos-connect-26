@@ -1,0 +1,6 @@
+azure-creds.json
+*.tfstate
+*.tfstate.*
+.terraform/
+github-creds.json
+.workload.kubeconfig

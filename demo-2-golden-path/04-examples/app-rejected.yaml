@@ -1,0 +1,7 @@
+# Beat 1: rejected at the API. `cobol` is not on the list, so nothing is created.
+apiVersion: platform.toon.consulting/v1alpha1
+kind: App
+metadata:
+  name: legacy-mainframe
+spec:
+  language: cobol

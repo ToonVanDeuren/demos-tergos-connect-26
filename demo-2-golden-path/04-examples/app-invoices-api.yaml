@@ -1,0 +1,7 @@
+# Pre-staged before the talk: an app that already exists when the rules change.
+apiVersion: platform.toon.consulting/v1alpha1
+kind: App
+metadata:
+  name: invoices-api
+spec:
+  language: go
