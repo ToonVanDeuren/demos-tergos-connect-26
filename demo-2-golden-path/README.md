@@ -15,7 +15,7 @@ spec:
 
 ```
                      CONTROL-PLANE CLUSTER (kind)
-          (Crossplane + providers, --poll=30s, change logs)
+          (Crossplane + providers, --poll=15s, change logs)
 
                          App (cluster-scoped)
          ┌───────────────────┬───────────────────────┐
@@ -36,7 +36,7 @@ spec:
 |---|---|---|
 | Platform (composition) | repository settings, identity, roles, namespace, Service, route | decided once, the same for every app |
 | Team (repository) | the code and `deploy/deployment.yaml` | the image changes with every release |
-| Platform (static, `setup.sh`) | AKS, the container registry and the `Gateway` | the shared layer, like the cluster itself |
+| Platform (static, `setup/platform.sh`) | AKS, the container registry and the `Gateway` | the shared layer, like the cluster itself |
 
 There is no Deployment in the composition, so no pod runs until the first release.
 The namespace enforces Pod Security `restricted`, so the team's manifest stays inside
@@ -50,7 +50,7 @@ its own identity, so there is no image pull secret either.
 
 ## The rollout (beat 4)
 
-`05-rollout/rollout.sh` applies the composition plus one step, a `BranchProtection`
+`rollout/rollout.sh` applies the composition plus one step, a `BranchProtection`
 for `main`. Every `App` picks it up, so every repository requires a reviewed pull
 request without anyone touching one. `rollback.sh` applies the original composition
 and the protection goes with it. Each change is a `CompositionRevision`.
@@ -58,39 +58,15 @@ and the protection goes with it. Each change is a `CompositionRevision`.
 ## Layout
 
 ```
-01-setup/       providers.yaml, functions.yaml, runtimeconfigs.yaml (poll + change logs + watches)
-02-config/      ClusterProviderConfigs (Azure, GitHub, the workload cluster) and the Gateway
-03-platform/    app/: the XRD and the composition
-04-examples/    the requests: rejected, live, and two pre-staged
-05-rollout/     the new requirement, as a patch on the composition
-setup.sh        everything, from nothing
-teardown.sh     everything, back to nothing
+platform/       the XRD and the composition (setup/platform.sh installs them)
+examples/       the requests: rejected, live, and two pre-staged
+rollout/        the new requirement, as a patch on the composition
 demo-script.md  the run of show and the rehearsal checklist
 ```
 
-## Running it
-
-Prereqs: kind, kubectl, kubelogin, helm, jq, gh, and az 2.86.0 or later (logged in).
-
-```bash
-az ad sp create-for-rbac --sdk-auth --role Owner \
-  --scopes "/subscriptions/$(az account show --query id -o tsv)" > azure-creds.json
-```
-
-Create `github-creds.json` with a personal access token with the `repo`, `workflow`
-and `delete_repo` scopes, for the account that owns `demos-tergos-connect-26-app-template`:
-
-```json
-{"token": "<token>", "owner": "<user>"}
-```
-
-Both files are gitignored. Then:
-
-```bash
-./setup.sh
-```
-
-AKS Automatic is not on the free tier, so run `./teardown.sh` between rehearsals.
+The control plane, AKS and the credentials live in [`setup/`](../setup). See
+"Run it yourself" in the [root README](../README.md). AKS Automatic is not on the
+free tier, so run `setup/teardown.sh --platform` between rehearsals.
 
 ## Decisions for the demo
 

@@ -1,0 +1,17 @@
+# The Azure provider family, installed BEFORE providers.yaml (see control-plane.sh).
+# The Azure providers depend on it. If they resolve that dependency before this is
+# installed, Crossplane installs a second copy (upbound-provider-family-azure) and
+# then stops resolving dependencies for every package ("node ... already exists").
+# It ships the ClusterProviderConfig CRD and ResourceGroup.
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-family-azure
+spec:
+  # ResourceGroup (azure.m.upbound.io) is used by demo 1
+  package: xpkg.upbound.io/upbound/provider-family-azure:v2.7.0
+  runtimeConfigRef:
+    apiVersion: pkg.crossplane.io/v1beta1
+    kind: DeploymentRuntimeConfig
+    name: provider-demo

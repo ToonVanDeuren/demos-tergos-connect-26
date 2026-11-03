@@ -1,21 +1,10 @@
 # Providers installed into the CONTROL-PLANE cluster.
 # The Azure family is co-released at one tag; pin every package to the same version.
-# provider-family-azure ships the ClusterProviderConfig CRD and ResourceGroup.
+# The family they depend on is in provider-family.yaml, installed first.
 #
 # Every provider gets a runtimeConfigRef: it shortens the drift poll interval to
-# 30s (default 10m) and turns on the change logs sidecar. See runtimeconfigs.yaml.
----
-apiVersion: pkg.crossplane.io/v1
-kind: Provider
-metadata:
-  name: provider-family-azure
-spec:
-  # ResourceGroup (azure.m.upbound.io) is used by demo 1
-  package: xpkg.upbound.io/upbound/provider-family-azure:v2.7.0
-  runtimeConfigRef:
-    apiVersion: pkg.crossplane.io/v1beta1
-    kind: DeploymentRuntimeConfig
-    name: provider-demo
+# 15s (default 10m) and turns on the change logs sidecar. GitHub is the exception:
+# a 30s poll and no change logs. See runtimeconfigs.yaml.
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
@@ -63,7 +52,7 @@ spec:
   runtimeConfigRef:
     apiVersion: pkg.crossplane.io/v1beta1
     kind: DeploymentRuntimeConfig
-    name: provider-demo
+    name: github-demo   # no change logs, see runtimeconfigs.yaml
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
