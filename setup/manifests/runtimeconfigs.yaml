@@ -1,6 +1,6 @@
 # Runtime settings for the provider pods. Two things happen here:
 #
-# 1. --poll=30s      drift is checked every 30 seconds instead of every 10 minutes,
+# 1. --poll=15s      drift is checked every 15 seconds instead of every 10 minutes,
 #                    so a by-hand change heals while the room is watching.
 #                    (Production: leave the default, or tune per provider.)
 # 2. change logs     alpha feature (Crossplane >= 1.17). The provider streams every
@@ -22,7 +22,7 @@ spec:
           containers:
             - name: package-runtime
               args:
-                - --poll=30s
+                - --poll=15s
                 - --enable-changelogs
               volumeMounts:
                 - name: changelogs-vol
@@ -53,7 +53,7 @@ spec:
           containers:
             - name: package-runtime
               args:
-                - --poll=30s
+                - --poll=15s
                 - --enable-watches
                 - --enable-changelogs
               volumeMounts:
@@ -67,3 +67,21 @@ spec:
           volumes:
             - name: changelogs-vol
               emptyDir: {}
+---
+# provider-upjet-github (v0.20.0) has no change logs support: it exits on
+# --enable-changelogs ("unknown long flag"). It gets only a 30s poll: GitHub allows
+# 5000 API calls per hour per token, and every poll of a repository costs several.
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: github-demo
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+              args:
+                - --poll=30s

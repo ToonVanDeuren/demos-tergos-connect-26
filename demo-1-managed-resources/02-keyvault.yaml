@@ -3,17 +3,15 @@ kind: Vault
 metadata:
   labels:
     demo: keyvault
-  name: kv-crossplane-demo-1-weu
+  name: kv-crossplane-demo-1-bec
   namespace: demo-1
 spec:
   forProvider:
-    location: West Europe
+    location: Belgium Central
     resourceGroupNameSelector:
       matchLabels:
         demo: keyvault
+    publicNetworkAccessEnabled: false
     skuName: premium
     softDeleteRetentionDays: 7
-
-
-
-    
+    tenantId: 1d93883c-55db-4f26-b6da-48a9f683b66e

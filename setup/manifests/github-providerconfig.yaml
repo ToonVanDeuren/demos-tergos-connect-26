@@ -1,4 +1,4 @@
-# The secret `github-creds` is created by setup.sh from github-creds.json:
+# The secret `github-creds` is created by platform.sh from github-creds.json:
 #   {"token": "<personal access token>", "owner": "<user or organisation>"}
 apiVersion: github.m.upbound.io/v1beta1
 kind: ClusterProviderConfig

@@ -18,7 +18,7 @@ DOMAIN=$(kubectl get environmentconfig platform -o jsonpath='{.data.platform.app
 
 ## Before the talk (T-60 min)
 
-- [ ] `./setup.sh` ran the day before; `kubectl get providers,functions` all HEALTHY.
+- [ ] `setup/control-plane.sh` and `setup/platform.sh` ran the day before; `kubectl get providers,functions` all HEALTHY.
 - [ ] pre-staged and READY: `kubectl get apps` shows `orders-api` and `invoices-api`.
 - [ ] both have a release: `curl http://orders-api.$DOMAIN/` and `invoices-api` answer.
 - [ ] rehearsal leftovers gone: `kubectl get app payments-api` says "not found", and the repo `payments-api` does not exist.
@@ -29,8 +29,8 @@ DOMAIN=$(kubectl get environmentconfig platform -o jsonpath='{.data.platform.app
 ## Beat 1: the edge, at the API (1 min)
 
 ```bash
-cat 04-examples/app-rejected.yaml
-kubectl apply -f 04-examples/app-rejected.yaml
+cat examples/app-rejected.yaml
+kubectl apply -f examples/app-rejected.yaml
 ```
 
 Expected: `spec.language: Unsupported value: "cobol": supported values: "go"`.
@@ -41,8 +41,8 @@ no Pod Security settings. Not forbidden. Not expressible.
 ## Beat 2: request an app (1.5 min)
 
 ```bash
-cat 04-examples/app-payments-api.yaml
-kubectl apply -f 04-examples/app-payments-api.yaml
+cat examples/app-payments-api.yaml
+kubectl apply -f examples/app-payments-api.yaml
 kubectl get app payments-api -w                       # ctrl-c when READY
 ```
 
@@ -78,8 +78,8 @@ New requirement from security: a change to `main` needs a reviewed pull request,
 every repo, including the ones that already exist.
 
 ```bash
-cat 05-rollout/branch-protection.yaml
-./05-rollout/rollout.sh
+cat rollout/branch-protection.yaml
+./rollout/rollout.sh
 ```
 
 Right terminal: one `BranchProtection` per app appears. Then, in GitHub:
@@ -114,7 +114,7 @@ through stages first. The old revision is still there to go back to.
 ## Reset between rehearsals
 
 ```bash
-./05-rollout/rollback.sh                 # the BranchProtection objects go with it
+./rollout/rollback.sh                 # the BranchProtection objects go with it
 kubectl delete app payments-api          # removes the repo and everything else
 kubectl get managed -A                   # orders-api and invoices-api only, all READY
 ```
@@ -123,14 +123,14 @@ kubectl get managed -A                   # orders-api and invoices-api only, all
 
 Rendered and schema-validated locally only. None of this has run live:
 
-- [ ] `az aks create --sku automatic` works on the subscription, and the version it picks: from AKS 1.36 App Routing Gateway API is on by default, below that `setup.sh` enables it.
+- [ ] `az aks create --sku automatic --attach-acr --enable-gateway-api --enable-app-routing-istio` works on the subscription in one go, and the `approuting-istio` GatewayClass shows up.
 - [ ] the `approuting-istio` GatewayClass is Accepted and the `Gateway` gets a public IP on managed Cilium; an `HTTPRoute` serves traffic through `<app>.<ip>.nip.io`.
 - [ ] provider-kubernetes reaches AKS from kind, signed in as the service principal.
 - [ ] all three replicas on fresh nodes: how long do they stay Pending? It decides whether beat 3 fits.
 - [ ] Deployment Safeguards accept `deploy/deployment.yaml` from the template.
 - [ ] the provider creates the repo from the template, and the `production` environment and `DEPLOY_CONFIG` land on it.
 - [ ] the pipeline gets a token through the federated credential, and the namespace-scoped role is enough for `kubectl apply` and `rollout status`. Measure how long a new role assignment takes to work: `az role assignment` can lag.
-- [ ] `az aks update --attach-acr` works on AKS Automatic, and pods pull from the registry without a pull secret.
+- [ ] pods pull from the registry without a pull secret.
 - [ ] `az acr login` and the push work with only `AcrPush` on the registry. It has no read role on the resource itself.
 - [ ] what the empty route answers in beat 2 (expect a 503).
 - [ ] beat 4 convergence time from `rollout.sh` to the last repo protected.

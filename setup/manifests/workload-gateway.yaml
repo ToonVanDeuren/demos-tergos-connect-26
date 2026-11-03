@@ -1,5 +1,5 @@
 # The platform-owned Gateway in the WORKLOAD cluster. Applied directly by
-# setup.sh, not through Crossplane: it is the static, shared layer, like the
+# platform.sh, not through Crossplane: it is the static, shared layer, like the
 # cluster itself. Every App attaches an HTTPRoute to it.
 #
 # `approuting-istio` is the AKS App Routing Gateway API implementation. HTTP only

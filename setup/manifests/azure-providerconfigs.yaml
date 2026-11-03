@@ -1,6 +1,6 @@
 # Named `default` because that is what a managed resource without a
 # providerConfigRef uses, which is how the demo 1 manifests stay short. The
-# secret `azure-creds` is created by setup.sh.
+# secret `azure-creds` is created by control-plane.sh.
 apiVersion: azure.m.upbound.io/v1beta1
 kind: ClusterProviderConfig
 metadata:
