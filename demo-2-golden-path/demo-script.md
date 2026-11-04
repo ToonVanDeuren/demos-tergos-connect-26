@@ -12,8 +12,8 @@ otherwise.
 - [ ] `setup/control-plane.sh` and `setup/platform.sh` ran; `kubectl get providers` all HEALTHY.
 - [ ] `orders-api` deployed and released, so a node is up and the release on stage is
   quick: `kubectl apply -f apps/orders-api.yaml`, wait for READY, publish release
-  `v0.1.0` in its GitHub repo, and check that `http://orders-api.<gateway ip>.nip.io/`
-  answers `orders-api v0.1.0`.
+  `v0.1.0` in its GitHub repo, and check that the `production` link on the run page
+  shows `orders-api v0.1.0`.
 - [ ] the other two do not exist: `kubectl get apps` shows only `orders-api`, and GitHub
   has no `invoices-api` or `payments-api` repo.
 - [ ] the platform composition is the original: `kubectl get branchprotections -A` is empty.
@@ -62,10 +62,9 @@ Then show where it landed:
 ## 3. Release
 
 In GitHub, `payments-api`: **Releases > Draft a new release**, tag `v0.1.0`,
-**Publish release**. Then the **Actions** tab: the run signs in to Azure without a
-secret, builds, pushes and deploys. When it is green, open
-`http://payments-api.<gateway ip>.nip.io/` (the IP is in the route's hostname above):
-`payments-api v0.1.0`.
+**Publish release**. Then the **Actions** tab: the run "Deploy v0.1.0" signs in to
+Azure without a secret, builds, pushes and deploys. When it is green, click the
+`production` link on the run page: the app, `payments-api v0.1.0`.
 
 ## 4. Change the composition
 
