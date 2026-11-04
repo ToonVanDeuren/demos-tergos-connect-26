@@ -16,6 +16,11 @@ if kind get clusters | grep -qx control-plane; then
   step "deleting the Apps (Crossplane removes their repositories and cloud resources)"
   kubectl --context "$CTL" delete apps.platform.toon.consulting --all \
     --wait --timeout=600s 2>/dev/null || true
+  # the App is gone at once; Crossplane deletes what it composed afterwards, so wait for that
+  for _ in $(seq 1 60); do
+    [ -z "$(kubectl --context "$CTL" get managed -n platform-system -o name 2>/dev/null)" ] && break
+    sleep 10
+  done
   if $ALL; then
     step "deleting demo 1"
     kubectl --context "$CTL" delete -f "$ROOT/demo-1-managed-resources/02-keyvault.yaml" \
