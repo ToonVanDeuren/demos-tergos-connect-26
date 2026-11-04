@@ -128,6 +128,5 @@ az ad sp delete --id "$(jq -r .clientId azure-creds.json)"
 
 - **Demo 1** ran live on 2026-11-03: create, drift and revert, change log, delete.
   See `demo-1-managed-resources/demo-script.md`.
-- **Demo 2** ran live on 2026-11-05 with one App: request, repository, identity, route,
-  release, live. Beat 4 and the timing with three Apps are still open: see the rehearsal
-  checklist in `demo-2-golden-path/demo-script.md`.
+- **Demo 2** had a full rehearsal on 2026-11-05: all four beats and the reset. See the
+  rehearsal checklist in `demo-2-golden-path/demo-script.md`.

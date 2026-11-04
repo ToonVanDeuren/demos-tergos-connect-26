@@ -141,10 +141,16 @@ First live run on 2026-11-05 with one App (`orders-api`):
 - [x] a release takes about 3 minutes: 40 seconds of pipeline, and the deploy step waits
   112 seconds for AKS to add a node. **Beat 3 is 2 minutes**: with `orders-api` and
   `invoices-api` already running there may be room on an existing node; measure it.
-- [ ] beat 3 timing with the two pre-staged apps running.
+- [x] full rehearsal on 2026-11-05 with the two pre-staged apps running:
+  - beat 1: the rejection message matches exactly.
+  - beat 2: `payments-api` READY after 86 seconds (the beat is 90), route answers 503.
+  - beat 3: release to `payments-api v0.1.0` in 61 seconds; a node was free, deploy took 8s.
+  - beat 4: all three repos protected 13 to 17 seconds after `rollout.sh`.
+  - reset: rollback and `kubectl delete app payments-api` in 20 seconds, nothing left behind.
 - [x] beat 4 with two Apps: both repos protected in GitHub 7 to 13 seconds after
   `rollout.sh`, the `BranchProtection` objects READY after 23 seconds. `rollback.sh`
   removes the protection again in 13 seconds. Needs `read:org` on the token: without
   it the rule is created but never read back, and the rollback leaves it in GitHub.
-- [ ] beat 4 with three Apps, on stage timing.
-- [ ] GitHub API usage at a 30s poll with three Apps (`gh api rate_limit`).
+- [x] GitHub API usage with three Apps: about 300 of 5000 calls per hour.
+- [ ] beat 2 has no slack: if READY takes longer than 90 seconds on the day, talk
+  over the right terminal (the resources appearing) rather than waiting in silence.

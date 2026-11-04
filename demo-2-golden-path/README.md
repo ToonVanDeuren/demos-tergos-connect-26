@@ -82,5 +82,5 @@ free tier, so run `setup/teardown.sh --platform` between rehearsals.
 
 ## Status
 
-Ran live on 2026-11-05 with one App, from request to a release serving traffic. Beat 4
-has not run yet: see the rehearsal checklist in `demo-script.md`.
+Full rehearsal on 2026-11-05: all four beats and the reset between rehearsals. See
+the rehearsal checklist in `demo-script.md`.
