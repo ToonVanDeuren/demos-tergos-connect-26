@@ -142,5 +142,9 @@ First live run on 2026-11-05 with one App (`orders-api`):
   112 seconds for AKS to add a node. **Beat 3 is 2 minutes**: with `orders-api` and
   `invoices-api` already running there may be room on an existing node; measure it.
 - [ ] beat 3 timing with the two pre-staged apps running.
-- [ ] beat 4 convergence time from `rollout.sh` to the last repo protected.
+- [x] beat 4 with two Apps: both repos protected in GitHub 7 to 13 seconds after
+  `rollout.sh`, the `BranchProtection` objects READY after 23 seconds. `rollback.sh`
+  removes the protection again in 13 seconds. Needs `read:org` on the token: without
+  it the rule is created but never read back, and the rollback leaves it in GitHub.
+- [ ] beat 4 with three Apps, on stage timing.
 - [ ] GitHub API usage at a 30s poll with three Apps (`gh api rate_limit`).

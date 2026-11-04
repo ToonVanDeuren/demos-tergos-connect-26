@@ -88,9 +88,10 @@ gh repo edit "$(gh api user --jq .login)/demos-tergos-connect-26-app-template" -
 ```
 
 **8. Create `setup/github-creds.json`** (gitignored) with a classic personal access
-token that has the `repo`, `workflow` and `delete_repo` scopes. This link fills in the
-scopes:
-[github.com/settings/tokens/new](https://github.com/settings/tokens/new?description=crossplane-demo&scopes=repo,workflow,delete_repo).
+token that has the `repo`, `workflow`, `delete_repo` and `read:org` scopes. `read:org`
+is needed even on a personal account: the provider reads branch protection rules back
+through GitHub's GraphQL API, which requires it. This link fills in the scopes:
+[github.com/settings/tokens/new](https://github.com/settings/tokens/new?description=crossplane-demo&scopes=repo,workflow,delete_repo,read:org).
 Copy the token, then write the file from the clipboard (`wl-paste` on Wayland,
 `pbpaste` on macOS) so it never lands in your shell history:
 
