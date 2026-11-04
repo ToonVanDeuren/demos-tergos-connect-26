@@ -52,18 +52,27 @@ its own identity, so there is no image pull secret either.
 
 `rollout/app.composition.yaml` is the platform composition plus one step, a
 `BranchProtection` for `main`, and `rollout/app.composition.diff` shows exactly that
-step. `rollout/rollout.sh` applies it. Every `App` picks it up, so every repository
-requires a reviewed pull request without anyone touching one. `rollback.sh` applies
-the original composition and the protection goes with it. Each change is a
-`CompositionRevision`.
+step. Applying it is the rollout: every `App` picks it up, so every repository
+requires a reviewed pull request without anyone touching one. Applying
+`platform/app.composition.yaml` again is the rollback, and the protection goes with
+it. Each change is a `CompositionRevision`.
+
+When the platform composition changes, make the same change in the rollout copy and
+regenerate the diff, from `demo-2-golden-path/`:
+
+```bash
+diff -u --label platform/app.composition.yaml --label rollout/app.composition.yaml \
+  platform/app.composition.yaml rollout/app.composition.yaml > rollout/app.composition.diff
+```
 
 ## Layout
 
 ```
-platform/       the XRD and the composition (setup/platform.sh installs them)
-examples/       the requests: rejected, live, and two pre-staged
-rollout/        the new requirement: the composition plus one step, and the diff
-demo-script.md  the run of show and the rehearsal checklist
+platform/         the XRD and the composition (setup/platform.sh installs them)
+apps/             three App requests; orders-api is deployed before the talk
+app-rejected.yaml a request the API refuses
+rollout/          the new requirement: the composition plus one step, and the diff
+demo-script.md    the run of show and the rehearsal checklist
 ```
 
 The control plane, AKS and the credentials live in [`setup/`](../setup). See

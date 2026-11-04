@@ -1,4 +1,4 @@
-# Beat 1: rejected at the API. `cobol` is not on the list, so nothing is created.
+# Rejected at the API: `cobol` is not a supported language, so nothing is created.
 apiVersion: platform.toon.consulting/v1alpha1
 kind: App
 metadata:
