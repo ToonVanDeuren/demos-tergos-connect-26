@@ -20,7 +20,7 @@ need_tools() {
 
 # az and the providers (azure-creds.json) must work on the same subscription
 check_subscription() {
-  [ -f "$AZURE_CREDS" ] || die "$AZURE_CREDS not found; see 'Run it yourself' in README.md"
+  [ -f "$AZURE_CREDS" ] || die "$AZURE_CREDS not found; see setup/README.md"
   local want; want="$(jq -r .subscriptionId "$AZURE_CREDS")"
   [ "$(az account show --query id -o tsv)" = "$want" ] \
     || die "az is on '$(az account show --query name -o tsv)', but azure-creds.json is for $want. Run: az account set --subscription $want"
