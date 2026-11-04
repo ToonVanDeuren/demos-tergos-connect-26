@@ -173,7 +173,7 @@ spec:
                 repositoryRef:
                   name: {{ $v.name }}
                 variableName: DEPLOY_CONFIG
-                value: {{ dict "AZURE_CLIENT_ID" $v.clientId "AZURE_TENANT_ID" $v.tenantId "AZURE_SUBSCRIPTION_ID" $v.subscriptionId "AKS_RESOURCE_GROUP" $v.resourceGroupName "AKS_CLUSTER_NAME" $v.clusterName "ACR_NAME" $v.registryName | toJson | quote }}
+                value: {{ dict "AZURE_CLIENT_ID" $v.clientId "AZURE_TENANT_ID" $v.tenantId "AZURE_SUBSCRIPTION_ID" $v.subscriptionId "AKS_RESOURCE_GROUP" $v.resourceGroupName "AKS_CLUSTER_NAME" $v.clusterName "ACR_NAME" $v.registryName "APP_URL" (printf "http://%s/" $v.hostname) | toJson | quote }}
               providerConfigRef:
                 kind: ClusterProviderConfig
                 name: default
