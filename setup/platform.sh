@@ -6,7 +6,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 need_tools kubectl kubelogin jq az
 check_subscription
-[ -f "$GITHUB_CREDS" ] || die "$GITHUB_CREDS not found; see 'Run it yourself' in README.md"
+[ -f "$GITHUB_CREDS" ] || die "$GITHUB_CREDS not found; see setup/README.md"
 kubectl --context "$CTL" get providers.pkg.crossplane.io >/dev/null 2>&1 \
   || die "no control plane at $CTL; run control-plane.sh first"
 

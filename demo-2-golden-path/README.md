@@ -75,9 +75,9 @@ rollout/          the new requirement: the composition plus one step, and the di
 demo-script.md    the run of show and the rehearsal checklist
 ```
 
-The control plane, AKS and the credentials live in [`setup/`](../setup). See
-"Run it yourself" in the [root README](../README.md). AKS Automatic is not on the
-free tier, so run `setup/teardown.sh --platform` between rehearsals.
+The control plane, AKS and the credentials live in [`setup/`](../setup), with how to
+run them in [`setup/README.md`](../setup/README.md). AKS Automatic is not on the free
+tier, so run `setup/teardown.sh --platform` between rehearsals.
 
 ## Decisions for the demo
 
