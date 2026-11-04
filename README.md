@@ -106,8 +106,7 @@ Copy the token, then write the file from the clipboard (`wl-paste` on Wayland,
 ./platform.sh
 ```
 
-When it finishes, it prints the commands that pre-stage two apps. Run those, then follow
-`demo-2-golden-path/demo-script.md`.
+Then follow `demo-2-golden-path/demo-script.md`.
 
 ### Tear it down
 

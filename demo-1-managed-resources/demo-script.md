@@ -4,19 +4,10 @@ A Key Vault as a Crossplane managed resource. It is created live, someone opens 
 to the internet by hand, and the platform closes it again within seconds and leaves
 a receipt.
 
-All `kubectl` commands run against `kind-control-plane`. Set it once:
-`kubectl config use-context kind-control-plane`.
+The terminal runs `nvim` and `kubectl`; the portal shows the result. `kubectl` runs
+against `kind-control-plane`.
 
-## Screen layout
-
-- **Left terminal (commands):** big font, `cd` into `demo-1-managed-resources/`, prompt cleared.
-- **Right terminal (watch):** what Azure says, every 2 seconds:
-  `watch -n 2 az keyvault show -n kv-crossplane-demo-1-bec --query properties.publicNetworkAccess -o tsv`
-  It shows an error until the vault exists, which is fine.
-- **Browser tab A:** the portal, on resource group `rg-crossplane-demo-1-bec`.
-- **Browser tab B:** the fallback recording.
-
-## Before the talk (T-60 min)
+## Before the talk
 
 - [ ] `setup/control-plane.sh` ran; `kubectl get providers` all HEALTHY.
 - [ ] the namespace and resource group are applied and READY:
@@ -25,43 +16,38 @@ All `kubectl` commands run against `kind-control-plane`. Set it once:
 - [ ] the vault does not exist yet: `kubectl get vault -n demo-1` is empty, and
   `az keyvault list-deleted` does not list `kv-crossplane-demo-1-bec`.
 - [ ] `az account show` is on the demo subscription.
-- [ ] right terminal running the `watch`; tab A open; tab B loaded.
+- [ ] terminal: big font, `cd` into `demo-1-managed-resources/`, prompt cleared.
+- [ ] browser tabs: A, the portal on resource group `rg-crossplane-demo-1-bec`; B, the
+  fallback recording.
 
-## Beat 1: the vault, as YAML (1 min)
+## 1. The vault, as YAML
 
 ```bash
-cat 02-keyvault.yaml
+nvim 02-keyvault.yaml
 ```
 
 Point at `publicNetworkAccessEnabled: false`: this vault is closed to the internet,
 and the file says so. `resourceGroupNameSelector` finds the resource group by label
-(`cat 01-resourcegroup.yaml` if there is time); nobody copies IDs around.
+(`nvim 01-resourcegroup.yaml` if there is time); nobody copies IDs around.
 
-## Beat 2: create it live (1 min)
+## 2. Create it live
 
 ```bash
 kubectl apply -f 02-keyvault.yaml
 kubectl get vault -n demo-1 -w            # ctrl-c when READY, about 40 seconds
 ```
 
-Right terminal: the error turns into `Disabled`. Tab A: refresh, the vault is there;
-under Networking, public access is disabled.
+Tab A: refresh, the vault is there; under **Networking**, public access is disabled.
 
-## Beat 3: someone opens it by hand (1.5 min)
+## 3. Someone opens it by hand
 
 Tab A: the vault, **Networking**, "Allow public access from all networks", Apply.
-Or from the left terminal:
-
-```bash
-az keyvault update -n kv-crossplane-demo-1-bec --public-network-access Enabled -o none
-```
-
-Right terminal: `Enabled`, then back to `Disabled`. Say "within about 15 seconds",
-not "instantly". Nobody was paged and nobody ran a script: the control plane checks
+Count to fifteen, refresh: disabled again. Say "within about 15 seconds", not
+"instantly". Nobody was paged and nobody ran a script: the control plane checks
 every 15 seconds that Azure still matches the file. The production default is 10
 minutes; it is turned up for the room.
 
-## Beat 4: the receipt (1 min)
+## 4. The receipt
 
 ```bash
 kubectl logs -n crossplane-system -l pkg.crossplane.io/provider=provider-azure-keyvault \

@@ -117,11 +117,6 @@ kubectl --context "$CTL" apply -k "$ROOT/demo-2-golden-path/platform"
 
 cat <<MSG
 
-Platform is up. Pre-stage two apps BEFORE the talk, from demo-2-golden-path/:
-  kubectl --context $CTL apply -f examples/app-orders-api.yaml -f examples/app-invoices-api.yaml
-  kubectl --context $CTL get apps -w
-  gh release create v0.1.0 -R $GITHUB_OWNER/orders-api --generate-notes
-  gh release create v0.1.0 -R $GITHUB_OWNER/invoices-api --generate-notes
-
-Then follow demo-2-golden-path/demo-script.md.
+Platform is up, with the apps at $GATEWAY_IP.nip.io.
+Follow demo-2-golden-path/demo-script.md.
 MSG
