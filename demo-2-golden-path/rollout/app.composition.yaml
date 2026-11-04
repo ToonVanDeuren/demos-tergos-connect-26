@@ -1,0 +1,485 @@
+# App: everything a team needs before its first release.
+#
+# GitHub:
+#   - Repository from the template for the requested language, with the build
+#     pipeline and the Deployment manifest in it
+#   - Environment `production`, the only place the pipeline can deploy from
+#   - ActionsVariable DEPLOY_CONFIG, so the repository holds no secret
+# Azure:
+#   - UserAssignedIdentity plus a FederatedIdentityCredential trusting that
+#     environment, and nothing else
+#   - RoleAssignments: sign in to the cluster, write to this app's namespace only,
+#     push to the platform's container registry
+# Workload cluster (via provider-kubernetes):
+#   - Namespace with Pod Security "restricted" enforced
+#   - Service and HTTPRoute on the platform Gateway
+#
+# There is no Deployment here on purpose. The image changes with every release, so
+# the Deployment lives in the repository and the release pipeline applies it. Until
+# the first release the route exists with nothing behind it.
+#
+# Configuration comes from the platform's EnvironmentConfig.
+#
+# Pipeline: environment → vars → one step per object → ready.
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: app
+spec:
+  compositeTypeRef:
+    apiVersion: platform.toon.consulting/v1alpha1
+    kind: App
+  mode: Pipeline
+  pipeline:
+    # 1. Resolve .platform.
+    - step: environment
+      functionRef:
+        name: function-environment-configs
+      input:
+        apiVersion: environmentconfigs.fn.crossplane.io/v1beta1
+        kind: Input
+        spec:
+          environmentConfigs:
+            - type: Reference
+              ref:
+                name: platform
+    # 2. Construct every derived value once and write it to the pipeline context.
+    #    The steps below only read `$v`; none of them computes anything.
+    - step: vars
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $cr := .observed.composite.resource }}
+            {{- $ctx := index .context "apiextensions.crossplane.io/environment" }}
+            {{- $observed := $.observed.resources | default dict }}
+            {{- $name := $cr.metadata.name }}
+            ---
+            apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
+            kind: Context
+            data:
+              platform.example.com/vars:
+                name: {{ $name }}
+                namespace: {{ $ctx.platform.managedResourcesNamespace }}
+                githubOwner: {{ $ctx.platform.github.owner }}
+                githubOwnerId: {{ $ctx.platform.github.ownerId | quote }}
+                template: {{ index $ctx.platform.github.templates $cr.spec.language }}
+                hostname: {{ $name }}.{{ $ctx.platform.appsDomain }}
+                tenantId: {{ $ctx.platform.tenantId }}
+                subscriptionId: {{ $ctx.platform.subscriptionId }}
+                location: {{ $ctx.platform.location }}
+                resourceGroupName: {{ $ctx.platform.resourceGroupName }}
+                clusterName: {{ $ctx.platform.clusterName }}
+                clusterId: {{ $ctx.platform.clusterId }}
+                registryName: {{ $ctx.platform.registryName }}
+                registryId: {{ $ctx.platform.registryId }}
+                identityName: id-{{ $name }}
+                # known once the identity is observed; empty on the first pass
+                clientId: {{ dig "identity" "resource" "status" "atProvider" "clientId" "" $observed | quote }}
+                principalId: {{ dig "identity" "resource" "status" "atProvider" "principalId" "" $observed | quote }}
+                # known once the repository is observed; a number, so kept as text
+                # (a float would render as 1.4e+09)
+                {{- $repoId := dig "repository" "resource" "status" "atProvider" "repoId" 0 $observed | int64 }}
+                repoId: {{ if $repoId }}{{ $repoId | toString | quote }}{{ else }}""{{ end }}
+                tags:
+                  {{- toYaml (merge (dict "app" $name) $ctx.platform.tags) | nindent 6 }}
+    # 3. The objects, one per step.
+    - step: repository
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $v := index .context "platform.example.com/vars" }}
+
+            ---
+            apiVersion: repo.github.m.upbound.io/v1alpha1
+            kind: Repository
+            metadata:
+              name: {{ $v.name }}
+              namespace: {{ $v.namespace }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: repository
+            spec:
+              forProvider:
+                name: {{ $v.name }}
+                description: Managed by the platform.
+                visibility: public
+                template:
+                  - owner: {{ $v.githubOwner }}
+                    repository: {{ $v.template }}
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+    - step: deployment-environment
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $v := index .context "platform.example.com/vars" }}
+
+            ---
+            apiVersion: repo.github.m.upbound.io/v1alpha1
+            kind: Environment
+            metadata:
+              name: {{ $v.name }}-production
+              namespace: {{ $v.namespace }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: deployment-environment
+            spec:
+              forProvider:
+                repositoryRef:
+                  name: {{ $v.name }}
+                environment: production
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+    - step: deploy-config
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $v := index .context "platform.example.com/vars" }}
+
+            {{- /* needs the client id, which only exists once the identity is observed */}}
+            {{- if $v.clientId }}
+            ---
+            # Not secret: where to deploy and as whom. Azure only hands out a token to
+            # a run in this repository's `production` environment.
+            apiVersion: actions.github.m.upbound.io/v1alpha1
+            kind: ActionsVariable
+            metadata:
+              name: {{ $v.name }}-deploy-config
+              namespace: {{ $v.namespace }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: deploy-config
+            spec:
+              forProvider:
+                repositoryRef:
+                  name: {{ $v.name }}
+                variableName: DEPLOY_CONFIG
+                value: {{ dict "AZURE_CLIENT_ID" $v.clientId "AZURE_TENANT_ID" $v.tenantId "AZURE_SUBSCRIPTION_ID" $v.subscriptionId "AKS_RESOURCE_GROUP" $v.resourceGroupName "AKS_CLUSTER_NAME" $v.clusterName "ACR_NAME" $v.registryName | toJson | quote }}
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+            {{- end }}
+    - step: identity
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $v := index .context "platform.example.com/vars" }}
+
+            ---
+            apiVersion: managedidentity.azure.m.upbound.io/v1beta1
+            kind: UserAssignedIdentity
+            metadata:
+              name: {{ $v.identityName }}
+              namespace: {{ $v.namespace }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: identity
+            spec:
+              forProvider:
+                name: {{ $v.identityName }}
+                location: {{ $v.location }}
+                resourceGroupName: {{ $v.resourceGroupName }}
+                tags:
+                  {{- toYaml $v.tags | nindent 6 }}
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+    - step: federated-credential
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $v := index .context "platform.example.com/vars" }}
+
+            {{- /* needs the repository id, which only exists once the repository is observed */}}
+            {{- if $v.repoId }}
+            ---
+            # The pipeline's token is exchanged for this identity. No client secret
+            # exists anywhere. GitHub puts the owner and repository IDs in the subject,
+            # not only the names: a deleted repository's name can be taken by someone
+            # else, its ID cannot.
+            apiVersion: managedidentity.azure.m.upbound.io/v1beta1
+            kind: FederatedIdentityCredential
+            metadata:
+              name: {{ $v.identityName }}-github
+              namespace: {{ $v.namespace }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: federated-credential
+                crossplane.io/external-name: {{ $v.identityName }}-github
+            spec:
+              forProvider:
+                resourceGroupName: {{ $v.resourceGroupName }}
+                parentIdRef:
+                  name: {{ $v.identityName }}
+                audience:
+                  - api://AzureADTokenExchange
+                issuer: https://token.actions.githubusercontent.com
+                subject: repo:{{ $v.githubOwner }}@{{ $v.githubOwnerId }}/{{ $v.name }}@{{ $v.repoId }}:environment:production
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+            {{- end }}
+    - step: cluster-user-role
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $v := index .context "platform.example.com/vars" }}
+
+            {{- /* needs the principal id, which only exists once the identity is observed */}}
+            {{- if $v.principalId }}
+            ---
+            apiVersion: authorization.azure.m.upbound.io/v1beta1
+            kind: RoleAssignment
+            metadata:
+              name: {{ $v.identityName }}-cluster-user
+              namespace: {{ $v.namespace }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: cluster-user-role
+            spec:
+              forProvider:
+                scope: {{ $v.clusterId }}
+                principalId: {{ $v.principalId }}
+                principalType: ServicePrincipal
+                roleDefinitionName: Azure Kubernetes Service Cluster User Role
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+            {{- end }}
+    - step: namespace-writer-role
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $v := index .context "platform.example.com/vars" }}
+
+            {{- /* needs the principal id, which only exists once the identity is observed */}}
+            {{- if $v.principalId }}
+            ---
+            apiVersion: authorization.azure.m.upbound.io/v1beta1
+            kind: RoleAssignment
+            metadata:
+              name: {{ $v.identityName }}-namespace-writer
+              namespace: {{ $v.namespace }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: namespace-writer-role
+            spec:
+              forProvider:
+                scope: {{ $v.clusterId }}/namespaces/{{ $v.name }}
+                principalId: {{ $v.principalId }}
+                principalType: ServicePrincipal
+                roleDefinitionName: Azure Kubernetes Service RBAC Writer
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+            {{- end }}
+    - step: registry-push-role
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $v := index .context "platform.example.com/vars" }}
+
+            {{- /* needs the principal id, which only exists once the identity is observed */}}
+            {{- if $v.principalId }}
+            ---
+            apiVersion: authorization.azure.m.upbound.io/v1beta1
+            kind: RoleAssignment
+            metadata:
+              name: {{ $v.identityName }}-registry-push
+              namespace: {{ $v.namespace }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: registry-push-role
+            spec:
+              forProvider:
+                scope: {{ $v.registryId }}
+                principalId: {{ $v.principalId }}
+                principalType: ServicePrincipal
+                roleDefinitionName: AcrPush
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+            {{- end }}
+    - step: namespace
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $v := index .context "platform.example.com/vars" }}
+
+            ---
+            apiVersion: kubernetes.m.crossplane.io/v1alpha1
+            kind: Object
+            metadata:
+              name: {{ $v.name }}-namespace
+              namespace: {{ $v.namespace }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: namespace
+            spec:
+              forProvider:
+                manifest:
+                  apiVersion: v1
+                  kind: Namespace
+                  metadata:
+                    name: {{ $v.name }}
+                    labels:
+                      pod-security.kubernetes.io/enforce: restricted
+                      platform.example.com/app: {{ $v.name }}
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: workload-cluster
+    - step: service
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $v := index .context "platform.example.com/vars" }}
+
+            ---
+            apiVersion: kubernetes.m.crossplane.io/v1alpha1
+            kind: Object
+            metadata:
+              name: {{ $v.name }}-service
+              namespace: {{ $v.namespace }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: service
+            spec:
+              # Watch the remote Service: a delete in the workload cluster triggers
+              # reconciliation immediately (needs --enable-watches).
+              watch: true
+              forProvider:
+                manifest:
+                  apiVersion: v1
+                  kind: Service
+                  metadata:
+                    name: {{ $v.name }}
+                    namespace: {{ $v.name }}
+                  spec:
+                    selector:
+                      app: {{ $v.name }}
+                    ports:
+                      - port: 80
+                        targetPort: http
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: workload-cluster
+    - step: http-route
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $v := index .context "platform.example.com/vars" }}
+
+            ---
+            apiVersion: kubernetes.m.crossplane.io/v1alpha1
+            kind: Object
+            metadata:
+              name: {{ $v.name }}-route
+              namespace: {{ $v.namespace }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: http-route
+            spec:
+              forProvider:
+                manifest:
+                  apiVersion: gateway.networking.k8s.io/v1
+                  kind: HTTPRoute
+                  metadata:
+                    name: {{ $v.name }}
+                    namespace: {{ $v.name }}
+                  spec:
+                    parentRefs:
+                      - name: platform
+                        namespace: platform-gateway
+                    hostnames:
+                      - {{ $v.hostname }}
+                    rules:
+                      - backendRefs:
+                          - name: {{ $v.name }}
+                            port: 80
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: workload-cluster
+    # New requirement: a change to main needs a reviewed pull request, in every repo.
+    - step: branch-protection
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $v := index .context "platform.example.com/vars" }}
+            ---
+            apiVersion: repo.github.m.upbound.io/v1alpha1
+            kind: BranchProtection
+            metadata:
+              name: {{ $v.name }}-main
+              namespace: {{ $v.namespace }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: branch-protection
+            spec:
+              forProvider:
+                repositoryIdRef:
+                  name: {{ $v.name }}
+                pattern: main
+                enforceAdmins: true
+                requiredPullRequestReviews:
+                  - requiredApprovingReviewCount: 1
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+    - step: ensure-ready
+      functionRef:
+        name: function-auto-ready

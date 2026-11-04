@@ -50,17 +50,19 @@ its own identity, so there is no image pull secret either.
 
 ## The rollout (beat 4)
 
-`rollout/rollout.sh` applies the composition plus one step, a `BranchProtection`
-for `main`. Every `App` picks it up, so every repository requires a reviewed pull
-request without anyone touching one. `rollback.sh` applies the original composition
-and the protection goes with it. Each change is a `CompositionRevision`.
+`rollout/app.composition.yaml` is the platform composition plus one step, a
+`BranchProtection` for `main`, and `rollout/app.composition.diff` shows exactly that
+step. `rollout/rollout.sh` applies it. Every `App` picks it up, so every repository
+requires a reviewed pull request without anyone touching one. `rollback.sh` applies
+the original composition and the protection goes with it. Each change is a
+`CompositionRevision`.
 
 ## Layout
 
 ```
 platform/       the XRD and the composition (setup/platform.sh installs them)
 examples/       the requests: rejected, live, and two pre-staged
-rollout/        the new requirement, as a patch on the composition
+rollout/        the new requirement: the composition plus one step, and the diff
 demo-script.md  the run of show and the rehearsal checklist
 ```
 
