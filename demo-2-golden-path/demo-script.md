@@ -78,9 +78,13 @@ New requirement from security: a change to `main` needs a reviewed pull request,
 every repo, including the ones that already exist.
 
 ```bash
-cat rollout/branch-protection.yaml
+cat rollout/app.composition.diff
 ./rollout/rollout.sh
 ```
+
+The diff is the whole change: one new step in the composition, 30 lines. For color,
+`git diff --no-index platform/app.composition.yaml rollout/app.composition.yaml`
+shows the same.
 
 Right terminal: one `BranchProtection` per app appears. Then, in GitHub:
 
