@@ -82,6 +82,5 @@ free tier, so run `setup/teardown.sh --platform` between rehearsals.
 
 ## Status
 
-Rendered and validated against the provider schemas, and the API and the template's
-Deployment tested on a local cluster. Nothing has run on AKS or against GitHub yet:
-see the rehearsal checklist in `demo-script.md`.
+Full rehearsal on 2026-11-05: all four beats and the reset between rehearsals. See
+the rehearsal checklist in `demo-script.md`.

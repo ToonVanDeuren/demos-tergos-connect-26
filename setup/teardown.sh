@@ -16,6 +16,11 @@ if kind get clusters | grep -qx control-plane; then
   step "deleting the Apps (Crossplane removes their repositories and cloud resources)"
   kubectl --context "$CTL" delete apps.platform.toon.consulting --all \
     --wait --timeout=600s 2>/dev/null || true
+  # the App is gone at once; Crossplane deletes what it composed afterwards, so wait for that
+  for _ in $(seq 1 60); do
+    [ -z "$(kubectl --context "$CTL" get managed -n platform-system -o name 2>/dev/null)" ] && break
+    sleep 10
+  done
   if $ALL; then
     step "deleting demo 1"
     kubectl --context "$CTL" delete -f "$ROOT/demo-1-managed-resources/02-keyvault.yaml" \
@@ -28,6 +33,10 @@ fi
 step "deleting AKS, the registry and their resource group"
 az group delete -n "$RG" --yes || true
 rm -f "$SETUP/.workload.kubeconfig"
+# and the context platform.sh added to your kubeconfig
+kubectl config delete-context "$AKS" >/dev/null 2>&1 || true
+kubectl config delete-cluster "$AKS" >/dev/null 2>&1 || true
+kubectl config delete-user "clusterUser_${RG}_${AKS}" >/dev/null 2>&1 || true
 
 if $ALL; then
   step "purging the soft-deleted key vault, so its name is free next time"
