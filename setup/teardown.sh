@@ -28,6 +28,10 @@ fi
 step "deleting AKS, the registry and their resource group"
 az group delete -n "$RG" --yes || true
 rm -f "$SETUP/.workload.kubeconfig"
+# and the context platform.sh added to your kubeconfig
+kubectl config delete-context "$AKS" >/dev/null 2>&1 || true
+kubectl config delete-cluster "$AKS" >/dev/null 2>&1 || true
+kubectl config delete-user "clusterUser_${RG}_${AKS}" >/dev/null 2>&1 || true
 
 if $ALL; then
   step "purging the soft-deleted key vault, so its name is free next time"

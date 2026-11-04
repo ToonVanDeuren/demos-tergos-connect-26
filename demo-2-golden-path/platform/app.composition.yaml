@@ -66,6 +66,7 @@ spec:
                 name: {{ $name }}
                 namespace: {{ $ctx.platform.managedResourcesNamespace }}
                 githubOwner: {{ $ctx.platform.github.owner }}
+                githubOwnerId: {{ $ctx.platform.github.ownerId | quote }}
                 template: {{ index $ctx.platform.github.templates $cr.spec.language }}
                 hostname: {{ $name }}.{{ $ctx.platform.appsDomain }}
                 tenantId: {{ $ctx.platform.tenantId }}
@@ -80,6 +81,10 @@ spec:
                 # known once the identity is observed; empty on the first pass
                 clientId: {{ dig "identity" "resource" "status" "atProvider" "clientId" "" $observed | quote }}
                 principalId: {{ dig "identity" "resource" "status" "atProvider" "principalId" "" $observed | quote }}
+                # known once the repository is observed; a number, so kept as text
+                # (a float would render as 1.4e+09)
+                {{- $repoId := dig "repository" "resource" "status" "atProvider" "repoId" 0 $observed | int64 }}
+                repoId: {{ if $repoId }}{{ $repoId | toString | quote }}{{ else }}""{{ end }}
                 tags:
                   {{- toYaml (merge (dict "app" $name) $ctx.platform.tags) | nindent 6 }}
     # 3. The objects, one per step.
@@ -213,9 +218,13 @@ spec:
           template: |
             {{- $v := index .context "platform.example.com/vars" }}
 
+            {{- /* needs the repository id, which only exists once the repository is observed */}}
+            {{- if $v.repoId }}
             ---
             # The pipeline's token is exchanged for this identity. No client secret
-            # exists anywhere.
+            # exists anywhere. GitHub puts the owner and repository IDs in the subject,
+            # not only the names: a deleted repository's name can be taken by someone
+            # else, its ID cannot.
             apiVersion: managedidentity.azure.m.upbound.io/v1beta1
             kind: FederatedIdentityCredential
             metadata:
@@ -232,10 +241,11 @@ spec:
                 audience:
                   - api://AzureADTokenExchange
                 issuer: https://token.actions.githubusercontent.com
-                subject: repo:{{ $v.githubOwner }}/{{ $v.name }}:environment:production
+                subject: repo:{{ $v.githubOwner }}@{{ $v.githubOwnerId }}/{{ $v.name }}@{{ $v.repoId }}:environment:production
               providerConfigRef:
                 kind: ClusterProviderConfig
                 name: default
+            {{- end }}
     - step: cluster-user-role
       functionRef:
         name: function-go-templating

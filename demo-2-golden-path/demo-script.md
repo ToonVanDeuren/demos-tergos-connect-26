@@ -119,19 +119,28 @@ kubectl delete app payments-api          # removes the repo and everything else
 kubectl get managed -A                   # orders-api and invoices-api only, all READY
 ```
 
-## Rehearsal checklist (things not yet proven)
+## Rehearsal checklist
 
-Rendered and schema-validated locally only. None of this has run live:
+First live run on 2026-11-05 with one App (`orders-api`):
 
-- [ ] `az aks create --sku automatic --attach-acr --enable-gateway-api --enable-app-routing-istio` works on the subscription in one go, and the `approuting-istio` GatewayClass shows up.
-- [ ] the `approuting-istio` GatewayClass is Accepted and the `Gateway` gets a public IP on managed Cilium; an `HTTPRoute` serves traffic through `<app>.<ip>.nip.io`.
-- [ ] provider-kubernetes reaches AKS from kind, signed in as the service principal.
-- [ ] all three replicas on fresh nodes: how long do they stay Pending? It decides whether beat 3 fits.
-- [ ] Deployment Safeguards accept `deploy/deployment.yaml` from the template.
-- [ ] the provider creates the repo from the template, and the `production` environment and `DEPLOY_CONFIG` land on it.
-- [ ] the pipeline gets a token through the federated credential, and the namespace-scoped role is enough for `kubectl apply` and `rollout status`. Measure how long a new role assignment takes to work: `az role assignment` can lag.
-- [ ] pods pull from the registry without a pull secret.
-- [ ] `az acr login` and the push work with only `AcrPush` on the registry. It has no read role on the resource itself.
-- [ ] what the empty route answers in beat 2 (expect a 503).
+- [x] `setup/platform.sh` builds AKS Automatic in about 10 minutes, with a managed system
+  pool (`--enable-hosted-system`) and AKS 1.36.5. `az aks create` still exits 1 at the
+  end (no Prometheus rule groups in Belgium Central); the script checks the cluster instead.
+- [x] the `approuting-istio` GatewayClass is Accepted, the `Gateway` gets a public IP, and
+  an `HTTPRoute` serves traffic through `<app>.<ip>.nip.io`.
+- [x] provider-kubernetes reaches AKS from kind, signed in as the service principal.
+- [x] the provider creates the repo from the template, with the `production` environment
+  and `DEPLOY_CONFIG`, and no secrets. The App is READY in about 80 seconds.
+- [x] the empty route answers `503 Service Unavailable` in beat 2.
+- [x] the pipeline gets a token through the federated credential (the subject carries the
+  owner and repository IDs), and the namespace-scoped role is enough for `kubectl apply`
+  and `rollout status`.
+- [x] `az acr login` and the push work with only `AcrPush`, and pods pull without a pull secret.
+- [x] Deployment Safeguards accept `deploy/deployment.yaml` from the template.
+- [x] `kubectl delete app` removes the repo (6 seconds), the identity and the namespace.
+- [x] a release takes about 3 minutes: 40 seconds of pipeline, and the deploy step waits
+  112 seconds for AKS to add a node. **Beat 3 is 2 minutes**: with `orders-api` and
+  `invoices-api` already running there may be room on an existing node; measure it.
+- [ ] beat 3 timing with the two pre-staged apps running.
 - [ ] beat 4 convergence time from `rollout.sh` to the last repo protected.
-- [ ] `kubectl delete app` removes the repo (the token needs `delete_repo`).
+- [ ] GitHub API usage at a 30s poll with three Apps (`gh api rate_limit`).

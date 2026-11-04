@@ -66,12 +66,12 @@ az vm list-skus -l belgiumcentral --size Standard_D4 -o table --query \
   "[?contains(['Standard_D4ds_v5','Standard_D4ads_v5','Standard_D4lds_v5','Standard_D4ads_v6','Standard_D4lds_v6'], name)].{size:name, restricted:join(',', restrictions[].reasonCode)}"
 ```
 
-AKS Automatic also needs more vCPU quota than a new subscription gets: often 10 per
-region, and 0 for most D-series families. It needs at least 12 in one family for its
-three system nodes. Check the numbers, and request an increase under
-**Quotas > Compute** in the portal when they are low. A new subscription may be denied
-automatically and have to open a support ticket. `platform.sh` warns when the regional
-total is too low.
+A new subscription often gets 10 vCPUs per region and 10 or 0 per D-series family.
+`platform.sh` runs the AKS system nodes outside the subscription (a managed system
+pool), so only the nodes for the apps need quota. 10 in a family is tight for three
+apps; check the numbers and request more under **Quotas > Compute** in the portal. A
+new subscription may be denied automatically and have to open a support ticket.
+`platform.sh` warns when the regional total is low.
 
 ```bash
 az vm list-usage -l belgiumcentral -o table --query \
@@ -127,5 +127,6 @@ az ad sp delete --id "$(jq -r .clientId azure-creds.json)"
 
 - **Demo 1** ran live on 2026-11-03: create, drift and revert, change log, delete.
   See `demo-1-managed-resources/demo-script.md`.
-- **Demo 2** has not run on AKS or against GitHub yet: see the rehearsal checklist in
-  `demo-2-golden-path/demo-script.md`.
+- **Demo 2** ran live on 2026-11-05 with one App: request, repository, identity, route,
+  release, live. Beat 4 and the timing with three Apps are still open: see the rehearsal
+  checklist in `demo-2-golden-path/demo-script.md`.
