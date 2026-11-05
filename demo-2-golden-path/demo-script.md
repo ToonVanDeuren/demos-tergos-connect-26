@@ -120,6 +120,6 @@ Measured on 2026-11-05:
   it again in about 13 seconds.
 - [x] `kubectl delete app` removes the repo, the identity and the namespace.
 - [x] GitHub API usage with three apps: about 300 of 5000 calls per hour.
-- [ ] two apps applied at once: how long until both are READY?
-- [ ] `crossplane resource trace --watch` at stage font size.
-- [ ] the GitHub click paths (release, Settings > Branches, editing on `main`).
+- [x] two apps applied at once: how long until both are READY?
+- [x] `crossplane resource trace --watch` at stage font size.
+- [x] the GitHub click paths (release, Settings > Branches, editing on `main`).

@@ -1,8 +1,8 @@
 # Demo 2: a golden path
 
-One request, from a repository to a route. A team asks for an `App`, the platform
-builds everything around it, and a release puts it live. When a new requirement
-lands, one change to the composition reaches every `App` that already exists.
+A team asks for an `App`, the platform builds everything around it, and a release puts
+it live. When a new requirement lands, one change to the composition reaches every
+`App` that already exists. The run of show is in [`demo-script.md`](demo-script.md).
 
 ```yaml
 apiVersion: platform.toon.consulting/v1alpha1
@@ -30,40 +30,11 @@ spec:
               fill in the tag, apply the repo's Deployment
 ```
 
-## Who owns what
-
-| Owner | Object | Why |
-|---|---|---|
-| Platform (composition) | repository settings, identity, roles, namespace, Service, route | decided once, the same for every app |
-| Team (repository) | the code and `deploy/deployment.yaml` | the image changes with every release |
-| Platform (static, `setup/platform.sh`) | AKS, the container registry and the `Gateway` | the shared layer, like the cluster itself |
-
-There is no Deployment in the composition, so no pod runs until the first release.
-The namespace enforces Pod Security `restricted`, so the team's manifest stays inside
-the platform's limits. The repository comes from
-[demos-tergos-connect-26-app-template](https://github.com/ToonVanDeuren/demos-tergos-connect-26-app-template).
-
-The repository holds no secret. The pipeline gets a token through a federated
-credential that trusts only this repository's `production` environment. Its roles
-reach this app's namespace and the shared registry, and the cluster pulls images with
-its own identity, so there is no image pull secret either.
-
-## The rollout (beat 4)
-
-`rollout/app.composition.yaml` is the platform composition plus one step, a
-`BranchProtection` for `main`, and `rollout/app.composition.diff` shows exactly that
-step. Applying it is the rollout: every `App` picks it up, so every repository
-requires a reviewed pull request without anyone touching one. Applying
-`platform/app.composition.yaml` again is the rollback, and the protection goes with
-it. Each change is a `CompositionRevision`.
-
-When the platform composition changes, make the same change in the rollout copy and
-regenerate the diff, from `demo-2-golden-path/`:
-
-```bash
-diff -u --label platform/app.composition.yaml --label rollout/app.composition.yaml \
-  platform/app.composition.yaml rollout/app.composition.yaml > rollout/app.composition.diff
-```
+The platform owns everything above; the team owns the code and `deploy/deployment.yaml`
+in a repository made from
+[the app template](https://github.com/ToonVanDeuren/demos-tergos-connect-26-app-template).
+The repository holds no secrets: the pipeline signs in through a federated credential
+that trusts only its `production` environment.
 
 ## Layout
 
@@ -71,27 +42,25 @@ diff -u --label platform/app.composition.yaml --label rollout/app.composition.ya
 platform/         the XRD and the composition (setup/platform.sh installs them)
 apps/             three App requests; orders-api is deployed before the talk
 app-rejected.yaml a request the API refuses
-rollout/          the new requirement: the composition plus one step, and the diff
+rollout/          beat 4: the composition plus a BranchProtection step, and the diff
 demo-script.md    the run of show and the rehearsal checklist
 ```
 
-The control plane, AKS and the credentials live in [`setup/`](../setup), with how to
-run them in [`setup/README.md`](../setup/README.md). AKS Automatic is not on the free
-tier, so run `setup/teardown.sh --platform` between rehearsals.
+Applying `rollout/app.composition.yaml` is the rollout; applying
+`platform/app.composition.yaml` again is the rollback. When the platform composition
+changes, change the rollout copy too and regenerate the diff, from `demo-2-golden-path/`:
 
-## Decisions for the demo
+```bash
+diff -u --label platform/app.composition.yaml --label rollout/app.composition.yaml \
+  platform/app.composition.yaml rollout/app.composition.yaml > rollout/app.composition.diff
+```
 
-- **HTTP only.** Hostnames are `<app>.<gateway ip>.nip.io`, so there is no DNS zone to
-  own and no self-signed certificate warning on stage.
-- **Public repositories.** Branch protection on private repositories needs a paid
-  GitHub plan.
-- **No rate limit on the route.** App Routing's Gateway API mode does not support it.
-- **One shared registry.** New GitHub packages default to private, so a new app's image
-  would not pull from `ghcr.io` without a token. `AcrPush` covers the whole registry, so
-  an app's pipeline can push to another app's repository; a real platform would scope
-  this per repository.
+## Choices for the stage
 
-## Status
+- **HTTP on `<app>.<gateway ip>.nip.io`**: no DNS zone and no certificate warning.
+- **Public repositories**: branch protection on private ones needs a paid GitHub plan.
+- **One shared registry**: new `ghcr.io` packages are private, so they would need a
+  pull token. `AcrPush` covers the whole registry; a real platform would scope it per app.
 
-Full rehearsal on 2026-11-05: all four beats and the reset between rehearsals. See
-the rehearsal checklist in `demo-script.md`.
+AKS Automatic is billed, so run `setup/teardown.sh --platform` between rehearsals. See
+[`setup/README.md`](../setup/README.md).
