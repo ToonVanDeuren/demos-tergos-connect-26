@@ -42,7 +42,7 @@ that trusts only its `production` environment.
 platform/         the XRD and the composition (setup/platform.sh installs them)
 apps/             three App requests; orders-api is deployed before the talk
 app-rejected.yaml a request the API refuses
-rollout/          beat 4: the composition plus a BranchProtection step, and the diff
+rollout/          the composition plus a BranchProtection step, and the diff
 demo-script.md    the run of show and the rehearsal checklist
 ```
 
