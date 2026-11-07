@@ -93,6 +93,6 @@ The resource group can stay.
 
 Tested on 2026-11-03 with the az CLI (create 38s, revert 6 to 25s, delete 12s):
 
-- [ ] the portal path in beat 3: does "Allow public access from all networks" change
+- [x] the portal path in step 3: does "Allow public access from all networks" change
   anything besides `publicNetworkAccess` (the network ACLs), and is that reverted too?
-- [ ] the vault and the drift line are readable at the stage font size.
+- [x] the vault and the drift line are readable at the stage font size.
